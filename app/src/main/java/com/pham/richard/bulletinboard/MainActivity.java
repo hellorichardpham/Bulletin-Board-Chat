@@ -17,7 +17,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -28,6 +27,7 @@ import android.widget.Toast;
 import java.util.UUID;
 
 
+import com.pham.richard.bulletinboard.R;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
@@ -47,24 +47,25 @@ public class MainActivity extends ActionBarActivity {
 
     // This is an id for my app, to keep the key space separate from other apps.
     private static final String MY_APP_ID = "luca_bboard";
-
-    private static final String SERVER_URL_PREFIX = "https://luca-teaching.appspot.com/store/default/";
-    //private static final String SERVER_URL_PREFIX = "https://hw3n-dot-luca-teaching.appspot.com/store/default/";
+    //private static final String SERVER_URL_PREFIX = "https://luca-teaching.appspot.com/store/default/";
+    private static final String SERVER_URL_PREFIX = "https://hw3n-dot-luca-teaching.appspot.com/store/default/";
 
     // To remember the favorite account.
     public static final String PREF_ACCOUNT = "pref_account";
 
     // To remember the post we received.
     public static final String PREF_POSTS = "pref_posts";
+
     // Uploader.
     private ServerCall uploader;
-    AppInfo appInfo;
-    ImageView image;
+
     // Remember whether we have already successfully checked in.
     private boolean checkinSuccessful = false;
 
     private ArrayList<String> accountList;
 
+    AppInfo appInfo;
+    String dest;
     private class ListElement {
         ListElement() {};
 
@@ -74,9 +75,7 @@ public class MainActivity extends ActionBarActivity {
 
     private ArrayList<MsgInfo> aList;
 
-
     ProgressBar spinner;
-
 
     private class MyAdapter extends ArrayAdapter<MsgInfo> {
         int resource;
@@ -110,19 +109,26 @@ public class MainActivity extends ActionBarActivity {
             TextView tv = (TextView) newView.findViewById(R.id.itemText);
             tv.setMovementMethod(new ScrollingMovementMethod());
             tv.setText(w.toString());
+            ImageView image = (ImageView)newView.findViewById(R.id.imageView);
+            image.setVisibility(View.INVISIBLE);
+            if(getItem(position).conversation) {
+                image.setVisibility(View.VISIBLE);
+            }
             // Set a listener for the whole list item.
             newView.setTag(w.toString());
             newView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    //image.setVisibility(View.VISIBLE);
-                    String destinationUserId = getItem(position).userid;
-                    System.out.println("*** I am passing userid: " + destinationUserId);
-                    //When you click on a listElement, enter a new chatActivity
-                    Intent intent = new Intent(MainActivity.this, ChatActivity.class);
-                    intent.putExtra("userid", destinationUserId);
-                    getItem(position).startConversation(true);
-                    context.startActivity(intent);
+                    //Only do it if I'm NOT clicking on myself
+                    if(getItem(position).userid != appInfo.userid) {
+                        //image.setVisibility(View.VISIBLE);
+                        String destinationUserId = getItem(position).userid;
+                        System.out.println("*** I am passing userid: " + destinationUserId);
+                        //When you click on a listElement, enter a new chatActivity
+                        Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+                        intent.putExtra("userid", destinationUserId);
+                        context.startActivity(intent);
+                    }
                 }
             });
             return newView;
@@ -130,22 +136,20 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private MyAdapter aa;
-    String dest;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        aList = new ArrayList<>();
+        aList = new ArrayList<MsgInfo>();
         aa = new MyAdapter(this, R.layout.list_element, aList);
-        appInfo = AppInfo.getInstance(this);
-        System.out.println("*** appInfo was just created. ID: " + appInfo.userid);
         ListView myListView = (ListView) findViewById(R.id.listView);
         myListView.setAdapter(aa);
         TextView locationView = (TextView) findViewById(R.id.locationView);
         spinner = (ProgressBar)findViewById(R.id.progressBar1);
         spinner.setVisibility(View.GONE);
-        image = (ImageView)findViewById(R.id.imageView);
+        appInfo = AppInfo.getInstance(this);
         aa.notifyDataSetChanged();
     }
 
@@ -220,7 +224,6 @@ public class MainActivity extends ActionBarActivity {
                 Toast toast = Toast.makeText(context, locationToastString, duration);
                 toast.show();
             }
-
         }
         //Problem: Toast would occur for slight location changes due to accuracy (.0000###)
         //where ### is only changing due to GPS signal. This method only checks if the
@@ -268,24 +271,17 @@ public class MainActivity extends ActionBarActivity {
 
         String msgid = UUID.randomUUID().toString();
         msgid = msgid.replace("-", "");
-        boolean conversation = false;
-        String conversationResult = "false";
-        if(conversation) {
-            conversationResult = "true";
-        }
 
         String lat = Double.toString(latitude);
         String lng = Double.toString(longitude);
-        System.out.println("*** I'm in clickPost. appInfo.userid: " + appInfo.userid);
-
         HashMap<String,String> m = new HashMap<String,String>();
         m.put("msg", msg);
         m.put("lat", lat);
         m.put("lng", lng);
         m.put("msgid", msgid);
         m.put("app_id", MY_APP_ID);
-        m.put("userid", "Huye");
-        m.put("conversation", conversationResult);
+        m.put("userid", appInfo.userid);
+        m.put("dest", "public");
         myCallSpec.setParams(m);
         // Actual server call.
         if (uploader != null) {
@@ -309,6 +305,7 @@ public class MainActivity extends ActionBarActivity {
         HashMap<String,String> m = new HashMap<String,String>();
         m.put("lat", lat);
         m.put("lng", lng);
+        m.put("userid", appInfo.userid);
         myCallSpec.setParams(m);
         // Actual server call.
         if (uploader != null) {
@@ -318,6 +315,7 @@ public class MainActivity extends ActionBarActivity {
         uploader = new ServerCall();
         uploader.execute(myCallSpec);
     }
+
 
 
     /**
@@ -355,8 +353,11 @@ public class MainActivity extends ActionBarActivity {
         //the gson attributes. Then add to list.
         final int MAXIMUM_MESSAGES = 10;
         for (int i = 0; i < ml.messages.length;/* && aList.size() < MAXIMUM_MESSAGES;*/ i++) {
-            System.out.println(ml.messages[i].toString());
-            aList.add(ml.messages[i]);
+            if (ml.messages[i].dest.equals("public")) {
+                System.out.println("userid: " + ml.messages[i].userid);
+                System.out.println(ml.messages[i].toString());
+                aList.add(ml.messages[i]);
+        }
         }
         aa.notifyDataSetChanged();
         spinner.setVisibility(View.GONE);
@@ -386,5 +387,3 @@ public class MainActivity extends ActionBarActivity {
     }
 
 }
-
-

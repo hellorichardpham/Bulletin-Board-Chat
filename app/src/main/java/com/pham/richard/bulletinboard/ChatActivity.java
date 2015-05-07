@@ -17,7 +17,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -28,6 +27,7 @@ import android.widget.Toast;
 import java.util.UUID;
 
 
+import com.pham.richard.bulletinboard.R;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
@@ -35,8 +35,8 @@ import java.util.HashMap;
 import java.util.List;
 
 
-
 public class ChatActivity extends ActionBarActivity {
+
     Location lastLocation;
     private double lastAccuracy = (double) 1e10;
     private long lastAccuracyTime = 0;
@@ -47,9 +47,8 @@ public class ChatActivity extends ActionBarActivity {
 
     // This is an id for my app, to keep the key space separate from other apps.
     private static final String MY_APP_ID = "luca_bboard";
-
-    private static final String SERVER_URL_PREFIX = "https://luca-teaching.appspot.com/store/default/";
-    //private static final String SERVER_URL_PREFIX = "https://hw3n-dot-luca-teaching.appspot.com/store/default/";
+    //private static final String SERVER_URL_PREFIX = "https://luca-teaching.appspot.com/store/default/";
+    private static final String SERVER_URL_PREFIX = "https://hw3n-dot-luca-teaching.appspot.com/store/default/";
 
     // To remember the favorite account.
     public static final String PREF_ACCOUNT = "pref_account";
@@ -60,15 +59,13 @@ public class ChatActivity extends ActionBarActivity {
     // Uploader.
     private ServerCall uploader;
 
-    AppInfo appInfo;
-
     // Remember whether we have already successfully checked in.
     private boolean checkinSuccessful = false;
 
-    //dest: public or userid?
-    String dest;
-
     private ArrayList<String> accountList;
+
+    AppInfo appInfo;
+    String dest;
 
     private class ListElement {
         ListElement() {};
@@ -95,10 +92,8 @@ public class ChatActivity extends ActionBarActivity {
         @Override
         public View getView(final int position, View convertView, ViewGroup parent) {
             LinearLayout newView;
-
             //ListElement w = getItem(position);
-            String w = getItem(position).msg;
-            System.out.println(getItem(position).toString());
+            String w = getItem(position).getTimedMessage();
             // Inflate a new view if necessary.
             if (convertView == null) {
                 newView = new LinearLayout(getContext());
@@ -113,16 +108,18 @@ public class ChatActivity extends ActionBarActivity {
             TextView tv = (TextView) newView.findViewById(R.id.itemText);
             tv.setMovementMethod(new ScrollingMovementMethod());
             tv.setText(w.toString());
+            ImageView image = (ImageView) newView.findViewById(R.id.imageView);
+            image.setVisibility(View.INVISIBLE);
             // Set a listener for the whole list item.
             newView.setTag(w.toString());
             newView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    String userid = getItem(position).userid;
+
                     //When you click on a listElement, enter a new chatActivity.
-                    Intent intent = new Intent(ChatActivity.this, MainActivity.class);
-                    intent.putExtra("userid", userid);
-                    context.startActivity(intent);
+                    //Intent intent = new Intent(ChatActivity.this, MainActivity.class);
+                    //intent.putExtra("userid", userid);
+                    //context.startActivity(intent);
                 }
             });
             return newView;
@@ -148,11 +145,10 @@ public class ChatActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
         // First super, then do stuff.
-
-
         Bundle extras = getIntent().getExtras();
         dest = extras.getString("userid");
-        System.out.println("**** ChatActivity: dest value is: " + dest);
+        System.out.println("ChatActivity dest value should be the target's userid:  " + dest);
+
         // Let us display the previous posts, if any.
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
         String result = settings.getString(PREF_POSTS, null);
@@ -178,6 +174,7 @@ public class ChatActivity extends ActionBarActivity {
                 + lng + " Accuracy: " + lastLocation.getAccuracy() + " meters";
         locationView.setText(locationString);
     }
+
 
     @Override
     protected void onPause() {
@@ -248,6 +245,10 @@ public class ChatActivity extends ActionBarActivity {
         EditText et = (EditText) findViewById(R.id.editText);
         String msg = et.getText().toString();
         spinner.setVisibility(v.VISIBLE);
+        //Get your current lat/lng
+        //msg will contain "withmywoes" or whatever. DONE
+        //Generate a msgid
+        // Then, we start the call.
         PostMessageSpec myCallSpec = new PostMessageSpec();
 
         myCallSpec.url = SERVER_URL_PREFIX + "put_local";
@@ -261,16 +262,15 @@ public class ChatActivity extends ActionBarActivity {
 
         String lat = Double.toString(latitude);
         String lng = Double.toString(longitude);
-
         HashMap<String,String> m = new HashMap<String,String>();
-        m.put("msg", msg);
         m.put("lat", lat);
         m.put("lng", lng);
         m.put("msgid", msgid);
+        m.put("msg", msg);
         m.put("app_id", MY_APP_ID);
         m.put("userid", appInfo.userid);
-        //m.put("dest", dest); //Should be passed as a userid
-        //m.put("conversation", "true");
+        m.put("dest", dest); //dest contains userid we want to chat with
+        m.put("conversation", "true");
         myCallSpec.setParams(m);
         // Actual server call.
         if (uploader != null) {
@@ -283,6 +283,7 @@ public class ChatActivity extends ActionBarActivity {
     }
 
     public void clickRefresh(View v) {
+        System.out.println("***THIS IS V: " + v.toString());
         spinner.setVisibility(v.VISIBLE);
         PostMessageSpec myCallSpec = new PostMessageSpec();
 
@@ -294,6 +295,8 @@ public class ChatActivity extends ActionBarActivity {
         HashMap<String,String> m = new HashMap<String,String>();
         m.put("lat", lat);
         m.put("lng", lng);
+        m.put("userid", appInfo.userid);
+        m.put("dest", dest);
         myCallSpec.setParams(m);
         // Actual server call.
         if (uploader != null) {
@@ -303,6 +306,8 @@ public class ChatActivity extends ActionBarActivity {
         uploader = new ServerCall();
         uploader.execute(myCallSpec);
     }
+
+
 
 
     /**
@@ -317,6 +322,7 @@ public class ChatActivity extends ActionBarActivity {
             } else {
                 // Translates the string result, decoding the Json.
                 Log.i(LOG_TAG, "Received string: " + result);
+                System.out.println("Result: " + result);
                 displayResult(result);
                 // Stores in the settings the last messages received.
                 SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
@@ -331,6 +337,8 @@ public class ChatActivity extends ActionBarActivity {
     private void displayResult(String result) {
         Gson gson = new Gson();
         MessageList ml = gson.fromJson(result, MessageList.class);
+        System.out.println("Beginning displayResult");
+        System.out.println("*** messagelist messages length " + ml.messages.length);
         //Clear the list of messages so it's a clean slate.
         aList.clear();
         //Iterate through the gson request. Create a
@@ -338,27 +346,36 @@ public class ChatActivity extends ActionBarActivity {
         //Set the attributes of the ListElement using
         //the gson attributes. Then add to list.
         final int MAXIMUM_MESSAGES = 10;
-        //Their dest equals my id or MY dest equals their ID
-         /*&& (ml.messages[i].dest.equals(appInfo.userid) || ml.messages[i].dest.equals(dest));*/
-        for (int i = 0; i < ml.messages.length && aList.size() < MAXIMUM_MESSAGES; i++) {
-            ListElement ael = new ListElement();
-            //Some message fields are equal to null, so check beforehand.
-            //Otherwise we'd check if null.equals("");
-            if (ml.messages[i].msg != null && !ml.messages[i].msg.equals("")
-                    && ml.messages[i].userid.equals(dest)) {
-                ael.textLabel = ml.messages[i].getTimedMessage();
-                //ael.buttonLabel = "Click"; //Use for hw3
+        for (int i = 0; i < ml.messages.length;/* && aList.size() < MAXIMUM_MESSAGES;*/ i++) {
+            //System.out.println(ml.messages[i].toString());
+            if (isMyConversation(ml.messages[i])) {
+                System.out.println(ml.messages[i].toString());
                 aList.add(ml.messages[i]);
+            } else {
+                System.out.println("I'm NOT showing this: " + ml.messages[i].toString());
             }
         }
         aa.notifyDataSetChanged();
         spinner.setVisibility(View.GONE);
     }
 
+    public boolean isMyConversation(MsgInfo message) {
+        //if the DESTINATION is meant for the TARGETUSER that I clicked on and the
+        //USERID of the message is equal to MY userid, that means it's a message
+        //that I sent to the user. OR if the USERID is equal to the TARGETUSER and
+        //the destination is equal to ME, HE is sending a message to ME.
+        if((message.dest.equals(dest) && message.userid.equals(appInfo.userid))
+                ||(message.userid.equals(dest) && message.dest.equals(appInfo.userid))) {
+            return true;
+        }
+        return false;
+    }
+
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_chat, menu);
+        getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
@@ -376,4 +393,5 @@ public class ChatActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
 }

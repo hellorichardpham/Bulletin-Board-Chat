@@ -10,12 +10,17 @@ import java.util.TimeZone;
  */
 
 public class MsgInfo {
-    public String msg;
-    public String userid;
-    public String dest;
-    public String ts;
-    public String msgid;
-    public Boolean conversation;
+    String msg;
+    String longitude;
+    String latitude;
+    String msgid;
+    String app_id;
+    String userid;
+    String ts;
+    String dest;
+    boolean conversation;
+
+
 
     public MsgInfo() {}
 
@@ -47,12 +52,7 @@ public class MsgInfo {
         return ts + "\n" + msg;
     }
 
-    public void startConversation(boolean hasStarted) {
-        conversation = hasStarted;
-    }
-
-
     public String toString() {
-        return "msg " + msg + " userid " + userid + " dest " + dest + " ts " + ts + " msgid " + msgid + " convo " + conversation;
+        return "msg |" + msg + "| userid |" + userid + "| dest |" + dest + "| conversation |" + conversation;
     }
 }

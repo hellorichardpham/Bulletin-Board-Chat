@@ -20,7 +20,7 @@ public class AppInfo {
         // Exists only to defeat instantiation.
     }
     // Here are some values we want to keep global.
-    public String userid = "Rich";
+    public String userid = "";
 
     public static AppInfo getInstance(Context context) {
         if (instance == null) {
