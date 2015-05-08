@@ -172,6 +172,7 @@ public class ChatActivity extends ActionBarActivity {
         TextView locationView = (TextView) findViewById(R.id.locationView);
         String locationString = "Latitude: " + lat + " Longitude: "
                 + lng + " Accuracy: " + lastLocation.getAccuracy() + " meters";
+        clickRefresh(locationView);
         locationView.setText(locationString);
     }
 
