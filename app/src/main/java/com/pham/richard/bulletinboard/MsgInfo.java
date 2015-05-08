@@ -1,6 +1,10 @@
 package com.pham.richard.bulletinboard;
 
+import android.text.format.DateUtils;
+import android.util.Log;
+
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
@@ -24,34 +28,12 @@ public class MsgInfo {
 
     public MsgInfo() {}
 
-    private String getRelevantTimeDiff(String timeStamp){
-        DateFormat targetFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss");
-        targetFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        SimpleDateFormat output = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        Date timestampDate;
-        //parse date.
-        //this can easily throw a ParseException so you should probably catch that
-        try {
-            timestampDate = targetFormat.parse(timeStamp);
-            timeStamp = output.format(timestampDate);
-            return timeStamp;
-        } catch(Exception e) {
-            System.out.println(e.getMessage());
-        }
-
-        return "Error";
-	/*
-	//Then just calculate the difference between the dates (remember dates are in
-	//milliseconds, so divide by 1000 at some point) and do some math and stuff
-	//to figure out what to display as the human readable time difference
-	*/
-    }
     public String getTimedMessage() {
-        //ts = getRelevantTimeDiff(ts);
         return ts + "\n" + msg;
     }
 
+    //Used for Debugging purposes
     public String toString() {
         return "msg |" + msg + "| userid |" + userid + "| dest |" + dest + "| conversation |" + conversation;
     }

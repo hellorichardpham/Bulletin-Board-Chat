@@ -38,20 +38,14 @@ import java.util.List;
 public class ChatActivity extends ActionBarActivity {
 
     Location lastLocation;
-    private double lastAccuracy = (double) 1e10;
-    private long lastAccuracyTime = 0;
 
     private static final String LOG_TAG = "lclicker";
 
-    private static final float GOOD_ACCURACY_METERS = 100;
 
     // This is an id for my app, to keep the key space separate from other apps.
     private static final String MY_APP_ID = "luca_bboard";
     //private static final String SERVER_URL_PREFIX = "https://luca-teaching.appspot.com/store/default/";
     private static final String SERVER_URL_PREFIX = "https://hw3n-dot-luca-teaching.appspot.com/store/default/";
-
-    // To remember the favorite account.
-    public static final String PREF_ACCOUNT = "pref_account";
 
     // To remember the post we received.
     public static final String PREF_POSTS = "pref_posts";
@@ -60,19 +54,11 @@ public class ChatActivity extends ActionBarActivity {
     private ServerCall uploader;
 
     // Remember whether we have already successfully checked in.
-    private boolean checkinSuccessful = false;
 
     private ArrayList<String> accountList;
 
     AppInfo appInfo;
     String dest;
-
-    private class ListElement {
-        ListElement() {};
-
-        public String textLabel;
-        public String buttonLabel;
-    }
 
     private ArrayList<MsgInfo> aList;
 
@@ -110,18 +96,7 @@ public class ChatActivity extends ActionBarActivity {
             tv.setText(w.toString());
             ImageView image = (ImageView) newView.findViewById(R.id.imageView);
             image.setVisibility(View.INVISIBLE);
-            // Set a listener for the whole list item.
             newView.setTag(w.toString());
-            newView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                    //When you click on a listElement, enter a new chatActivity.
-                    //Intent intent = new Intent(ChatActivity.this, MainActivity.class);
-                    //intent.putExtra("userid", userid);
-                    //context.startActivity(intent);
-                }
-            });
             return newView;
         }
     }
@@ -147,7 +122,6 @@ public class ChatActivity extends ActionBarActivity {
         // First super, then do stuff.
         Bundle extras = getIntent().getExtras();
         dest = extras.getString("userid");
-        System.out.println("ChatActivity dest value should be the target's userid:  " + dest);
 
         // Let us display the previous posts, if any.
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
@@ -284,7 +258,6 @@ public class ChatActivity extends ActionBarActivity {
     }
 
     public void clickRefresh(View v) {
-        System.out.println("***THIS IS V: " + v.toString());
         spinner.setVisibility(v.VISIBLE);
         PostMessageSpec myCallSpec = new PostMessageSpec();
 
@@ -323,7 +296,6 @@ public class ChatActivity extends ActionBarActivity {
             } else {
                 // Translates the string result, decoding the Json.
                 Log.i(LOG_TAG, "Received string: " + result);
-                System.out.println("Result: " + result);
                 displayResult(result);
                 // Stores in the settings the last messages received.
                 SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
@@ -338,22 +310,15 @@ public class ChatActivity extends ActionBarActivity {
     private void displayResult(String result) {
         Gson gson = new Gson();
         MessageList ml = gson.fromJson(result, MessageList.class);
-        System.out.println("Beginning displayResult");
-        System.out.println("*** messagelist messages length " + ml.messages.length);
         //Clear the list of messages so it's a clean slate.
         aList.clear();
         //Iterate through the gson request. Create a
         //ListElement which is one line of the view.
         //Set the attributes of the ListElement using
         //the gson attributes. Then add to list.
-        final int MAXIMUM_MESSAGES = 10;
-        for (int i = 0; i < ml.messages.length;/* && aList.size() < MAXIMUM_MESSAGES;*/ i++) {
-            //System.out.println(ml.messages[i].toString());
+        for (int i = 0; i < ml.messages.length; i++) {
             if (isMyConversation(ml.messages[i])) {
-                System.out.println(ml.messages[i].toString());
                 aList.add(ml.messages[i]);
-            } else {
-                System.out.println("I'm NOT showing this: " + ml.messages[i].toString());
             }
         }
         aa.notifyDataSetChanged();

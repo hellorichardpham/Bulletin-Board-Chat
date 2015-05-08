@@ -24,6 +24,7 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import java.util.UUID;
 
 
@@ -38,16 +39,11 @@ import java.util.List;
 public class MainActivity extends ActionBarActivity {
 
     Location lastLocation;
-    private double lastAccuracy = (double) 1e10;
-    private long lastAccuracyTime = 0;
 
     private static final String LOG_TAG = "lclicker";
 
-    private static final float GOOD_ACCURACY_METERS = 100;
-
     // This is an id for my app, to keep the key space separate from other apps.
     private static final String MY_APP_ID = "luca_bboard";
-    //private static final String SERVER_URL_PREFIX = "https://luca-teaching.appspot.com/store/default/";
     private static final String SERVER_URL_PREFIX = "https://hw3n-dot-luca-teaching.appspot.com/store/default/";
 
     // To remember the favorite account.
@@ -59,19 +55,7 @@ public class MainActivity extends ActionBarActivity {
     // Uploader.
     private ServerCall uploader;
 
-    // Remember whether we have already successfully checked in.
-    private boolean checkinSuccessful = false;
-
-    private ArrayList<String> accountList;
-
     AppInfo appInfo;
-    String dest;
-    private class ListElement {
-        ListElement() {};
-
-        public String textLabel;
-        public String buttonLabel;
-    }
 
     private ArrayList<MsgInfo> aList;
 
@@ -92,15 +76,13 @@ public class MainActivity extends ActionBarActivity {
         public View getView(final int position, View convertView, ViewGroup parent) {
             LinearLayout newView;
 
-            //ListElement w = getItem(position);
             String w = getItem(position).getTimedMessage();
-            System.out.println(getItem(position).toString());
             // Inflate a new view if necessary.
             if (convertView == null) {
                 newView = new LinearLayout(getContext());
                 String inflater = Context.LAYOUT_INFLATER_SERVICE;
                 LayoutInflater vi = (LayoutInflater) getContext().getSystemService(inflater);
-                vi.inflate(resource,  newView, true);
+                vi.inflate(resource, newView, true);
             } else {
                 newView = (LinearLayout) convertView;
             }
@@ -109,9 +91,9 @@ public class MainActivity extends ActionBarActivity {
             TextView tv = (TextView) newView.findViewById(R.id.itemText);
             tv.setMovementMethod(new ScrollingMovementMethod());
             tv.setText(w.toString());
-            ImageView image = (ImageView)newView.findViewById(R.id.imageView);
+            ImageView image = (ImageView) newView.findViewById(R.id.imageView);
             image.setVisibility(View.INVISIBLE);
-            if(getItem(position).conversation) {
+            if (getItem(position).conversation) {
                 image.setVisibility(View.VISIBLE);
             }
             // Set a listener for the whole list item.
@@ -120,10 +102,8 @@ public class MainActivity extends ActionBarActivity {
                 @Override
                 public void onClick(View v) {
                     //Only do it if I'm NOT clicking on myself
-                    if(getItem(position).userid != appInfo.userid) {
-                        //image.setVisibility(View.VISIBLE);
+                    if (!getItem(position).userid.equals(appInfo.userid)) {
                         String destinationUserId = getItem(position).userid;
-                        System.out.println("*** I am passing userid: " + destinationUserId);
                         //When you click on a listElement, enter a new chatActivity
                         Intent intent = new Intent(MainActivity.this, ChatActivity.class);
                         intent.putExtra("userid", destinationUserId);
@@ -147,9 +127,9 @@ public class MainActivity extends ActionBarActivity {
         ListView myListView = (ListView) findViewById(R.id.listView);
         myListView.setAdapter(aa);
         TextView locationView = (TextView) findViewById(R.id.locationView);
-        spinner = (ProgressBar)findViewById(R.id.progressBar1);
+        spinner = (ProgressBar) findViewById(R.id.progressBar1);
         spinner.setVisibility(View.GONE);
-        appInfo = AppInfo.getInstance(this);
+        appInfo = AppInfo.getInstance(this); //generate userID
         aa.notifyDataSetChanged();
     }
 
@@ -186,6 +166,7 @@ public class MainActivity extends ActionBarActivity {
         TextView locationView = (TextView) findViewById(R.id.locationView);
         String locationString = "Latitude: " + lat + " Longitude: "
                 + lng + " Accuracy: " + lastLocation.getAccuracy() + " meters";
+        clickRefresh(locationView);
         locationView.setText(locationString);
     }
 
@@ -213,10 +194,9 @@ public class MainActivity extends ActionBarActivity {
             String locationString = "Latitude: " + lat + " Longitude: "
                     + lng + " Accuracy: " + lastLocation.getAccuracy() + " meters";
             locationView.setText(locationString);
-
             //Only display the toast if up to the 1000th digit has changed to
             //Prevent toasts from displaying due to accuracy changes
-            if(isBigLocationChange(lastLocation, location)) {
+            if (isBigLocationChange(lastLocation, location)) {
                 int duration = Toast.LENGTH_SHORT;
                 Context context = getApplicationContext();
                 String locationToastString = "Location Changed:\n" + "Latitude: " + lat + " Longitude: "
@@ -225,6 +205,7 @@ public class MainActivity extends ActionBarActivity {
                 toast.show();
             }
         }
+
         //Problem: Toast would occur for slight location changes due to accuracy (.0000###)
         //where ### is only changing due to GPS signal. This method only checks if the
         //10000th place has changed as to stop unnecessary toasts showing
@@ -237,30 +218,27 @@ public class MainActivity extends ActionBarActivity {
             if (currentLat.equals(newLat) && currentLng.equals(newLng)) {
                 return false;
             }
-            return true; //One of them didn't match
+            return true;
         }
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {}
 
         @Override
-        public void onProviderEnabled(String provider) {}
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+        }
 
         @Override
-        public void onProviderDisabled(String provider) {}
+        public void onProviderEnabled(String provider) {
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+        }
     };
 
-
-
+    // Get the text we want to send.
     public void clickPost(View v) {
-
-        // Get the text we want to send.
         EditText et = (EditText) findViewById(R.id.editText);
         String msg = et.getText().toString();
         spinner.setVisibility(v.VISIBLE);
-        //Get your current lat/lng
-        //msg will contain "withmywoes" or whatever. DONE
-        //Generate a msgid
-        // Then, we start the call.
         PostMessageSpec myCallSpec = new PostMessageSpec();
 
         myCallSpec.url = SERVER_URL_PREFIX + "put_local";
@@ -274,7 +252,7 @@ public class MainActivity extends ActionBarActivity {
 
         String lat = Double.toString(latitude);
         String lng = Double.toString(longitude);
-        HashMap<String,String> m = new HashMap<String,String>();
+        HashMap<String, String> m = new HashMap<String, String>();
         m.put("msg", msg);
         m.put("lat", lat);
         m.put("lng", lng);
@@ -302,7 +280,7 @@ public class MainActivity extends ActionBarActivity {
         String lat = Double.toString(lastLocation.getLatitude());
         String lng = Double.toString(lastLocation.getLongitude());
 
-        HashMap<String,String> m = new HashMap<String,String>();
+        HashMap<String, String> m = new HashMap<String, String>();
         m.put("lat", lat);
         m.put("lng", lng);
         m.put("userid", appInfo.userid);
@@ -315,7 +293,6 @@ public class MainActivity extends ActionBarActivity {
         uploader = new ServerCall();
         uploader.execute(myCallSpec);
     }
-
 
 
     /**
@@ -344,20 +321,16 @@ public class MainActivity extends ActionBarActivity {
     private void displayResult(String result) {
         Gson gson = new Gson();
         MessageList ml = gson.fromJson(result, MessageList.class);
-        System.out.println("*** messagelist messages length " + ml.messages.length);
         //Clear the list of messages so it's a clean slate.
         aList.clear();
         //Iterate through the gson request. Create a
         //ListElement which is one line of the view.
         //Set the attributes of the ListElement using
         //the gson attributes. Then add to list.
-        final int MAXIMUM_MESSAGES = 10;
-        for (int i = 0; i < ml.messages.length;/* && aList.size() < MAXIMUM_MESSAGES;*/ i++) {
+        for (int i = 0; i < ml.messages.length; i++) {
             if (ml.messages[i].dest.equals("public")) {
-                System.out.println("userid: " + ml.messages[i].userid);
-                System.out.println(ml.messages[i].toString());
                 aList.add(ml.messages[i]);
-        }
+            }
         }
         aa.notifyDataSetChanged();
         spinner.setVisibility(View.GONE);
@@ -377,8 +350,6 @@ public class MainActivity extends ActionBarActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
