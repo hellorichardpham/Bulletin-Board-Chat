@@ -10,4 +10,5 @@
     <string name="failure">Failure</string>
     <string name="post_msg">Post</string>
     <string name="title_activity_chat">ChatActivity</string>
+    <string name="title_activity_map">Map</string>
 </resources>
